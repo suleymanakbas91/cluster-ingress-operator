@@ -110,3 +110,21 @@ func TestURI(t *testing.T) {
 		}
 	}
 }
+
+func FuzzURI(f *testing.F) {
+	testcases := []string{"http://1.2.3.4", "http://1.2.3.4:80"}
+	for _, tc := range testcases {
+		f.Add(tc) // Use f.Add to provide a seed corpus
+	}
+
+	f.Fuzz(func(t *testing.T, orig string) {
+		t.Logf("input: %s", orig)
+		// if orig is an int, skip
+		// if orig is less than X characters, skip
+		//
+		scheme, err := URI(orig)
+		if err != nil {
+			t.Fatalf("Parsed scheme: %s", scheme)
+		}
+	})
+}
