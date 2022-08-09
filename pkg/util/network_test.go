@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"regexp"
 	"testing"
 )
 
@@ -66,7 +67,7 @@ func TestURI(t *testing.T) {
 			expected:    true,
 		},
 		{
-			description: "valid https uri with mixed capitalization, port and bckslash",
+			description: "valid https uri with mixed capitalization, port and backslash",
 			uri:         "https://EXAMPLe.com:8080/",
 			scheme:      "https",
 			expected:    true,
@@ -112,13 +113,25 @@ func TestURI(t *testing.T) {
 }
 
 func FuzzURI(f *testing.F) {
-	testcases := []string{"http://1.2.3.4", "http://1.2.3.4:80"}
+	testcases := []string{"http://1.2.3.4", "http://1.2.3.4/", "http://1.2.3.4:80",
+		"http://1.2.3.4:80/", "http://redhat", "http://red_hat.com", "http://www.redhat.com",
+		"http://WWW.REDHAT.COM", "https://1.2.3.4", "https://EXAMPLe.com:8080/"}
 	for _, tc := range testcases {
-		f.Add(tc) // Use f.Add to provide a seed corpus
+		f.Add(tc) // adding seed corpus
 	}
 
 	f.Fuzz(func(t *testing.T, orig string) {
-		t.Logf("input: %s", orig)
+		pattern := `^(http[s]*:\/\/)([a-zA-Z\d\.]{2,})\.([a-zA-Z]{2,})(:1[0-9]{0,4}|:2[0-9]{0,4}|:3[0-9]{0,4}|:4[0-9]{0,4}|:5[0-9]{0,4}|:6[0-9]{0,3}[0-5])?$`
+		re, err := regexp.Compile(pattern)
+		if err != nil {
+			t.Fatal("Failed to compile")
+		}
+
+		matched := re.Match([]byte(orig))
+		if !matched {
+			t.Skipf("Invalid URI: %s", orig)
+		}
+
 		// if orig is an int, skip
 		// if orig is less than X characters, skip
 		//
